@@ -1,6 +1,12 @@
 import ngui
 import wx
 from wx.richtext import RichTextRange as rtr
+import copy
+class Grid:
+    def __init__(self):
+        self.width = 400
+        self.height = 200
+        self.content = [[[]]]
 
 class Events:
     def __init__(self, nbr, title='Title', width=350, height=250):
@@ -9,7 +15,7 @@ class Events:
         self.default_colors = {}
         self.hl_attr = {}
         self.hl_group = {}
-        self.grid = {}
+        self.grid = Grid()
         
     def option_set(self,ui,options):
         for opt in options:
@@ -17,7 +23,7 @@ class Events:
             if opt[0] == 'guifont':
                 guifont = opt[1].split(':')
                 print(guifont,'gf')
-                ui.textCtrl.SetFont(wx.Font(wx.FontInfo(int(guifont[1][1:])).FaceName(guifont[0])))
+                ui.frame.SetFont(wx.Font(wx.FontInfo(int(guifont[1][1:])).FaceName(guifont[0])))
 
     def default_colors_set(self,ui,colors):
         self.default_colors['foreground'] = colors[0][1]
@@ -32,26 +38,28 @@ class Events:
         pass
 
     def resize_ui(self,ui,width,height):
-        ui.textCtrl.Clear()
-        font = ui.textCtrl.GetFont()
-        dc = wx.ClientDC(ui.textCtrl)
+        # ui.textCtrl.Clear()
+        font = ui.frame.GetFont()
+        dc = wx.ClientDC(ui.frame.pnl)
         dc.SetFont(font)
         font_size = dc.GetTextExtent('_')
         # ui.textCtrl.SetSize(width * font_size.GetWidth(), height * font_size.GetHeight())
-        ui.frame.SetClientSize((width+1) * font_size.GetWidth(), (height+1) * font_size.GetHeight())
-        ui.textCtrl.AppendText(((' '*(width+0))+'\n')*(height+1))
+        ui.frame.SetClientSize((width) * font_size.GetWidth(), (height) * font_size.GetHeight())
+        # ui.textCtrl.AppendText(((' '*(width+0))+'\n')*(height+1))
         # ui.textCtrl.AppendText(((' '*(50))+'\n')*(50))
         print(font_size)
         print(width * font_size.GetWidth(), height * font_size.GetHeight())
         # ui.frame.Fit()
 
     def grid_resize(self,ui,e):
-        print('size',e)
-        self.grid['no'] = e[0][0]
-        width = self.grid['width'] = e[0][1]
-        height = self.grid['height'] = e[0][2]
-        wx.CallAfter(self.resize_ui,ui,width,height)
-
+        col = self.grid.width = e[0][1]
+        row = self.grid.height = e[0][2]
+        c = [' ',1]
+        d = [copy.deepcopy(c) for i in range(col)]
+        e = [copy.deepcopy(d) for i in range(row)]
+        self.grid.content = e
+        wx.CallAfter(self.resize_ui,ui,col,row)
+        print('resized')
 
     def clear_grid(self,ui,g):
         # wx.CallAfter(ui.textCtrl.Clear)
@@ -68,13 +76,11 @@ class Events:
             row = line[1]
             col_start = line[2]
             cells = line[3]
-            tc = ui.textCtrl
-            pos = tc.XYToPosition(col_start, row)
             i = 0
+            hl_id = 1
             for cell in cells:
                 # print('cell',cell)
-                hl_id = None
-                repeat = None
+                repeat = 1
                 try:
                     text = cell[0]
                     hl_id = cell[1]
@@ -85,13 +91,14 @@ class Events:
                     # print(text)
                     # wx.CallAfter(ui.textCtrl.AppendText,text)
                     # tc = wx.richtext.RichTextCtrl()#todo
-                    if repeat is None:
-                        repeat = 1
-                    wx.CallAfter(self.do_gui_update,tc,row,col_start+i,text*repeat,repeat)
+                    for r in range(repeat):
+                        self.grid.content[row][col_start+i+r][0] = text
+                        self.grid.content[row][col_start+i+r][1] = hl_id
+                        # print(text+" added", 'at', row, col_start+i+r)
                     i += repeat
-                    # print('w',text, pos, row, col_start)
-                    pass
-        pass
+                    # print(self.grid.content)
+                    # print('w',text, row, col_start, repeat)
+
     def do_gui_update(self,tc, row,col, text, repeat=1):
         pos = tc.XYToPosition(col, row)
         # print('a', text, pos, row, col)
@@ -113,7 +120,9 @@ class Events:
             # print('m',m)
             func = getattr(self,m[0])
             func(ui,m[1:])
-        pass
+
+    def update_gui(self,ui):
+        ui.frame.pnl.Refresh()
 
     def grid_cursor_goto(self,ui,position):
         pass
@@ -127,7 +136,7 @@ class Events:
     def mode_change(self,ui,e):
         pass
     def flush(self,ui,e):
-        pass
+        self.update_gui(ui)
 
 
 

@@ -19,7 +19,7 @@ events = redrawevent.Events(nbr)
 ui = ngui.NGUI(nbr, events, 'Title',800,500)
 # print(nm)
 
-# ui.app.MainLoop()
+ui.app.MainLoop()
 print(ui.events.option)
 
 print(gv)
