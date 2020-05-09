@@ -2,11 +2,12 @@ import ngui
 import wx
 from wx.richtext import RichTextRange as rtr
 import copy
+from collections import deque
 class Grid:
     def __init__(self):
         self.width = 400
         self.height = 200
-        self.content = [[[]]]
+        self.content = deque([[[]]])
 
 class Events:
     def __init__(self, nbr, title='Title', width=350, height=250):
@@ -22,14 +23,19 @@ class Events:
             self.option[opt[0]] = opt[1]
             if opt[0] == 'guifont':
                 guifont = opt[1].split(':')
-                print(guifont,'gf')
-                ui.frame.SetFont(wx.Font(wx.FontInfo(int(guifont[1][1:])).FaceName(guifont[0])))
+                ui.frame.pnl.SetFont(wx.Font(wx.FontInfo(int(guifont[1][1:])).FaceName(guifont[0])))
 
     def default_colors_set(self,ui,colors):
-        self.default_colors['foreground'] = colors[0][1]
-        self.default_colors['background'] = colors[0][2]
-        self.default_colors['special'] = colors[0][3]
-
+        fg = self.default_colors['foreground'] = colors[0][0]
+        bg = self.default_colors['background'] = colors[0][1]
+        sc = self.default_colors['special'] = colors[0][2]
+        if 0 not in self.hl_attr:
+            self.hl_attr[0] = {'foreground':fg, 'background':bg, 'special':sc}
+        wx.CallAfter(self.set_default_gui_color,ui,fg,bg)
+    def set_default_gui_color(self,ui, fg, bg):
+        pnl = ui.frame.pnl
+        pnl.SetForegroundColour(wx.Colour(fg))
+        pnl.SetBackgroundColour(wx.Colour(bg))
     def hl_attr_define(self,ui,attrs):
         for att in attrs:
             self.hl_attr[att[0]] = att[1]
@@ -39,7 +45,7 @@ class Events:
 
     def resize_ui(self,ui,width,height):
         # ui.textCtrl.Clear()
-        font = ui.frame.GetFont()
+        font = ui.frame.pnl.GetFont()
         dc = wx.ClientDC(ui.frame.pnl)
         dc.SetFont(font)
         font_size = dc.GetTextExtent('_')
@@ -47,8 +53,6 @@ class Events:
         ui.frame.SetClientSize((width) * font_size.GetWidth(), (height) * font_size.GetHeight())
         # ui.textCtrl.AppendText(((' '*(width+0))+'\n')*(height+1))
         # ui.textCtrl.AppendText(((' '*(50))+'\n')*(50))
-        print(font_size)
-        print(width * font_size.GetWidth(), height * font_size.GetHeight())
         # ui.frame.Fit()
 
     def grid_resize(self,ui,e):
@@ -56,10 +60,9 @@ class Events:
         row = self.grid.height = e[0][2]
         c = [' ',1]
         d = [copy.deepcopy(c) for i in range(col)]
-        e = [copy.deepcopy(d) for i in range(row)]
+        e = deque(copy.deepcopy(d) for i in range(row))
         self.grid.content = e
         wx.CallAfter(self.resize_ui,ui,col,row)
-        print('resized')
 
     def clear_grid(self,ui,g):
         # wx.CallAfter(ui.textCtrl.Clear)
@@ -71,7 +74,6 @@ class Events:
 
     def grid_line(self,ui,lines):
         for line in lines:
-            # print('line', line)
             grid_no = line[0]
             row = line[1]
             col_start = line[2]
@@ -79,7 +81,6 @@ class Events:
             i = 0
             hl_id = 1
             for cell in cells:
-                # print('cell',cell)
                 repeat = 1
                 try:
                     text = cell[0]
@@ -88,26 +89,19 @@ class Events:
                 except IndexError:
                     continue
                 finally:
-                    # print(text)
                     # wx.CallAfter(ui.textCtrl.AppendText,text)
                     # tc = wx.richtext.RichTextCtrl()#todo
                     for r in range(repeat):
                         self.grid.content[row][col_start+i+r][0] = text
                         self.grid.content[row][col_start+i+r][1] = hl_id
-                        # print(text+" added", 'at', row, col_start+i+r)
                     i += repeat
-                    # print(self.grid.content)
-                    # print('w',text, row, col_start, repeat)
 
     def do_gui_update(self,tc, row,col, text, repeat=1):
         pos = tc.XYToPosition(col, row)
-        # print('a', text, pos, row, col)
-        # print('t',text,pos)
         # tc.Remove(pos,pos+repeat)
         # tc.SetInsertionPoint(pos)
         # tc.WriteText(text)
         tc.Replace(pos, pos+repeat, text)
-        # print('written',text,'at', pos, 'to', pos+repeat)
         # tc.Delete(rtr(pos+1,pos+2))
         
     def update_loop(self, ui):
@@ -117,7 +111,6 @@ class Events:
     def do_update(self, ui):
         nm = self.nbr.next_message()
         for m in nm[2]:
-            # print('m',m)
             func = getattr(self,m[0])
             func(ui,m[1:])
 
@@ -130,6 +123,12 @@ class Events:
     def grid_destroy(self,ui,e):
         pass
     def grid_scroll(self,ui,e):
+        scroll = e[0][5]
+        # wx.CallAfter(self.grid.content.rotate,-scroll)
+        #doen't work because this causes status bar to scroll as well
+
+        # self.grid.content.rotate(scroll)
+
         pass
     def mode_info_set(self,ui,e):
         pass
@@ -137,6 +136,8 @@ class Events:
         pass
     def flush(self,ui,e):
         self.update_gui(ui)
+    def busy_start(self,ui,e):
+        pass
 
 
 
