@@ -1,6 +1,7 @@
 import ngui
 import wx
 from wx.richtext import RichTextRange as rtr
+from config import Config
 
 class Events:
     def __init__(self, nbr, title='Title', width=350, height=250):
@@ -36,13 +37,18 @@ class Events:
         font = ui.textCtrl.GetFont()
         dc = wx.ClientDC(ui.textCtrl)
         dc.SetFont(font)
-        font_size = dc.GetTextExtent('_')
+        font_size = dc.GetTextExtent('A')
         # ui.textCtrl.SetSize(width * font_size.GetWidth(), height * font_size.GetHeight())
-        ui.frame.SetClientSize((width+1) * font_size.GetWidth(), (height+1) * font_size.GetHeight())
-        ui.textCtrl.AppendText(((' '*(width+0))+'\n')*(height+1))
+        # ui.frame.SetClientSize((width+0) * font_size.GetWidth(), (height+0) * font_size.GetHeight())
+        ui.textCtrl.AppendText((('a'*(width+0))+'\n')*(height+0))
+        s = dc.GetMultiLineTextExtent(ui.textCtrl.GetValue())
+        ui.frame.SetClientSize(s.GetWidth()+Config.width_offset,s.GetHeight()+Config.height_offset)
         # ui.textCtrl.AppendText(((' '*(50))+'\n')*(50))
         print(font_size)
         print(width * font_size.GetWidth(), height * font_size.GetHeight())
+        print('te', ui.textCtrl.GetFullTextExtent(ui.textCtrl.GetLineText(0)))
+        print('bs', ui.textCtrl.GetBestSize())
+        print('ds', dc.GetMultiLineTextExtent(ui.textCtrl.GetValue()))
         # ui.frame.Fit()
 
     def grid_resize(self,ui,e):
@@ -87,12 +93,13 @@ class Events:
                     # tc = wx.richtext.RichTextCtrl()#todo
                     if repeat is None:
                         repeat = 1
-                    wx.CallAfter(self.do_gui_update,tc,row,col_start+i,text*repeat,repeat)
+                    wx.CallAfter(self.do_gui_update,ui,row,col_start+i,text*repeat,repeat)
                     i += repeat
                     # print('w',text, pos, row, col_start)
                     pass
         pass
-    def do_gui_update(self,tc, row,col, text, repeat=1):
+    def do_gui_update(self,ui, row,col, text, repeat=1):
+        tc = ui.textCtrl
         pos = tc.XYToPosition(col, row)
         # print('a', text, pos, row, col)
         # print('t',text,pos)
@@ -100,6 +107,7 @@ class Events:
         # tc.SetInsertionPoint(pos)
         # tc.WriteText(text)
         tc.Replace(pos, pos+repeat, text)
+
         # print('written',text,'at', pos, 'to', pos+repeat)
         # tc.Delete(rtr(pos+1,pos+2))
         
