@@ -19,8 +19,9 @@ class Example(wx.Frame):
         super(Example, self).__init__(parent, title=title,
             size=(width, height))
         # self.pnl = wx.Panel(self)
+        self.events = events
         # self.pnl.Bind(wx.EVT_PAINT, self.OnPaint)
-        tc = self.txtCtrl = wx.TextCtrl(self, style=wx.TE_MULTILINE|wx.TE_RICH2|wx.TE_DONTWRAP|wx.TE_NO_VSCROLL)
+        tc = self.txtCtrl = wx.TextCtrl(self, style=wx.TE_MULTILINE|wx.TE_RICH|wx.TE_DONTWRAP|wx.TE_NO_VSCROLL|wx.BORDER_NONE)
         tc.SetScrollbar(wx.VERTICAL,0,0,0)
         tc.SetScrollbar(wx.HORIZONTAL,0,0,0)
         self.SetScrollbar(wx.VERTICAL,0,0,0)
@@ -33,6 +34,7 @@ class Example(wx.Frame):
         tc.SetFont(wx.Font(wx.FontInfo().FaceName('Source Code Pro')))
         # tc.AppendText('\n'*50)
         tc.AppendText(((' '*50) + '\n')*50)
+        self.Center()
     def OnPaint(self, e):
         dc = wx.PaintDC(self.pnl)
         dc.SetPen(wx.Pen('RED'))

@@ -10,7 +10,7 @@ nbr = nbridge.NBridge(nvim)
 # Now do some work. 
 buffer = nvim.current.buffer # Get the current buffer
 buffer[0] = 'replace first line'
-buffer[:] = ['replace whole buffer']
+# buffer[:] = ['replace whole buffer']
 nbr.input('inew line')
 nvim.vars['global_var'] = [1, 2, 3]
 gv = nvim.eval('g:global_var')

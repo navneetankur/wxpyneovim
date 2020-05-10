@@ -1,6 +1,4 @@
-import ngui
 import wx
-from wx.richtext import RichTextRange as rtr
 from config import Config
 
 class Events:
@@ -9,6 +7,7 @@ class Events:
         self.option = {}
         self.default_colors = {}
         self.hl_attr = {}
+        self.hl_attr[0] = {}
         self.hl_group = {}
         self.grid = {}
         
@@ -20,10 +19,16 @@ class Events:
                 print(guifont,'gf')
                 ui.textCtrl.SetFont(wx.Font(wx.FontInfo(int(guifont[1][1:])).FaceName(guifont[0])))
 
+    def gui_default_colors(self, ui, fg, bg):
+        tc = ui.textCtrl
+        tc.SetForegroundColour(wx.Colour(fg))
+        tc.SetBackgroundColour(wx.Colour(bg))
+
     def default_colors_set(self,ui,colors):
-        self.default_colors['foreground'] = colors[0][1]
-        self.default_colors['background'] = colors[0][2]
-        self.default_colors['special'] = colors[0][3]
+        fg = self.default_colors['foreground'] = colors[0][0]
+        bg = self.default_colors['background'] = colors[0][1]
+        sc = self.default_colors['special'] = colors[0][2]
+        wx.CallAfter(self.gui_default_colors,ui,fg,bg)
 
     def hl_attr_define(self,ui,attrs):
         for att in attrs:
@@ -40,7 +45,8 @@ class Events:
         font_size = dc.GetTextExtent('A')
         # ui.textCtrl.SetSize(width * font_size.GetWidth(), height * font_size.GetHeight())
         # ui.frame.SetClientSize((width+0) * font_size.GetWidth(), (height+0) * font_size.GetHeight())
-        ui.textCtrl.AppendText((('a'*(width+0))+'\n')*(height+0))
+        ui.textCtrl.AppendText(((' '*(width+0))+'\n')*(height+0-1))
+        ui.textCtrl.AppendText(' '*width)
         s = dc.GetMultiLineTextExtent(ui.textCtrl.GetValue())
         ui.frame.SetClientSize(s.GetWidth()+Config.width_offset,s.GetHeight()+Config.height_offset)
         # ui.textCtrl.AppendText(((' '*(50))+'\n')*(50))
@@ -77,28 +83,26 @@ class Events:
             tc = ui.textCtrl
             pos = tc.XYToPosition(col_start, row)
             i = 0
+            hl_id = 0
             for cell in cells:
                 # print('cell',cell)
-                hl_id = None
-                repeat = None
+                repeat = 1
                 try:
                     text = cell[0]
                     hl_id = cell[1]
                     repeat = cell[2]
                 except IndexError:
-                    continue
-                finally:
+                    pass
                     # print(text)
                     # wx.CallAfter(ui.textCtrl.AppendText,text)
-                    # tc = wx.richtext.RichTextCtrl()#todo
-                    if repeat is None:
-                        repeat = 1
-                    wx.CallAfter(self.do_gui_update,ui,row,col_start+i,text*repeat,repeat)
-                    i += repeat
+                wx.CallAfter(self.do_gui_update,ui,row,col_start+i,text,hl_id,repeat)
+                i += repeat
                     # print('w',text, pos, row, col_start)
-                    pass
         pass
-    def do_gui_update(self,ui, row,col, text, repeat=1):
+    def do_gui_update(self,ui, row,col, text,hl_id, repeat=1):
+        hl = self.hl_attr[hl_id]
+        # print('h',hl_id,text * repeat)
+        # print(hl)
         tc = ui.textCtrl
         pos = tc.XYToPosition(col, row)
         # print('a', text, pos, row, col)
@@ -106,7 +110,40 @@ class Events:
         # tc.Remove(pos,pos+repeat)
         # tc.SetInsertionPoint(pos)
         # tc.WriteText(text)
-        tc.Replace(pos, pos+repeat, text)
+        fg_df = self.default_colors['foreground']
+        bg_df = self.default_colors['background']
+        sc_df = self.default_colors['special']
+        foreground = hl.get('foreground',fg_df)
+        background = hl.get('background',bg_df)
+        special = hl.get('special',sc_df)
+        reverse = hl.get('reverse', False)
+        italic = hl.get('italic', False)
+        bold = hl.get('bold', False)
+        strikethrough = hl.get('strikethrough', False)
+        underline = hl.get('underline', False)
+        undercurl = hl.get('undercurl', False)
+        blend = hl.get('blend', False)
+        if reverse:
+            foreground, background = background, foreground
+        font = wx.Font(tc.GetFont())
+        # font = wx.Font()#todo
+        if bold: font.MakeBold()
+        if italic: font.MakeItalic()
+        if strikethrough: font.MakeStrikethrough()
+        style = wx.TextAttr(wx.Colour(foreground), wx.Colour(background), font)
+        # style = wx.TextAttr(wx.Colour(background), wx.Colour(foreground), font)
+        if underline:
+            style.SetFontUnderlineType(wx.TEXT_ATTR_UNDERLINE_SOLID, wx.Colour(special))
+        if undercurl:
+            style.SetFontUnderlineType(wx.TEXT_ATTR_UNDERLINE_SPECIAL, wx.Colour(special))
+        # tc = wx.TextCtrl() #todo
+        tc.Remove(pos, pos+repeat)
+        tc.SetInsertionPoint(pos)
+        tc.SetDefaultStyle(style)
+        tc.WriteText(text*repeat)
+        # tc.Replace(pos, pos+repeat, text*repeat)
+        # tc.SetStyle(pos, pos+repeat,
+        
 
         # print('written',text,'at', pos, 'to', pos+repeat)
         # tc.Delete(rtr(pos+1,pos+2))
@@ -133,6 +170,10 @@ class Events:
     def mode_info_set(self,ui,e):
         pass
     def mode_change(self,ui,e):
+        pass
+    def busy_start(self,ui,e):
+        pass
+    def busy_stop(self,ui,e):
         pass
     def flush(self,ui,e):
         pass
