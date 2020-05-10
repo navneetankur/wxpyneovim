@@ -10,6 +10,7 @@ class Events:
         self.hl_attr[0] = {}
         self.hl_group = {}
         self.grid = {}
+        self.lasthl = 0
         
     def option_set(self,ui,options):
         for opt in options:
@@ -100,47 +101,49 @@ class Events:
                     # print('w',text, pos, row, col_start)
         pass
     def do_gui_update(self,ui, row,col, text,hl_id, repeat=1):
-        hl = self.hl_attr[hl_id]
-        # print('h',hl_id,text * repeat)
-        # print(hl)
         tc = ui.textCtrl
         pos = tc.XYToPosition(col, row)
-        # print('a', text, pos, row, col)
-        # print('t',text,pos)
-        # tc.Remove(pos,pos+repeat)
-        # tc.SetInsertionPoint(pos)
-        # tc.WriteText(text)
-        fg_df = self.default_colors['foreground']
-        bg_df = self.default_colors['background']
-        sc_df = self.default_colors['special']
-        foreground = hl.get('foreground',fg_df)
-        background = hl.get('background',bg_df)
-        special = hl.get('special',sc_df)
-        reverse = hl.get('reverse', False)
-        italic = hl.get('italic', False)
-        bold = hl.get('bold', False)
-        strikethrough = hl.get('strikethrough', False)
-        underline = hl.get('underline', False)
-        undercurl = hl.get('undercurl', False)
-        blend = hl.get('blend', False)
-        if reverse:
-            foreground, background = background, foreground
-        font = wx.Font(tc.GetFont())
-        # font = wx.Font()#todo
-        if bold: font.MakeBold()
-        if italic: font.MakeItalic()
-        if strikethrough: font.MakeStrikethrough()
-        style = wx.TextAttr(wx.Colour(foreground), wx.Colour(background), font)
-        # style = wx.TextAttr(wx.Colour(background), wx.Colour(foreground), font)
-        if underline:
-            style.SetFontUnderlineType(wx.TEXT_ATTR_UNDERLINE_SOLID, wx.Colour(special))
-        if undercurl:
-            style.SetFontUnderlineType(wx.TEXT_ATTR_UNDERLINE_SPECIAL, wx.Colour(special))
-        # tc = wx.TextCtrl() #todo
+        if self.lasthl != hl_id:
+            hl = self.hl_attr[hl_id]
+            # print('h',hl_id,text * repeat)
+            # print(hl)
+            # print('a', text, pos, row, col)
+            # print('t',text,pos)
+            # tc.Remove(pos,pos+repeat)
+            # tc.SetInsertionPoint(pos)
+            # tc.WriteText(text)
+            fg_df = self.default_colors['foreground']
+            bg_df = self.default_colors['background']
+            sc_df = self.default_colors['special']
+            foreground = hl.get('foreground',fg_df)
+            background = hl.get('background',bg_df)
+            special = hl.get('special',sc_df)
+            reverse = hl.get('reverse', False)
+            italic = hl.get('italic', False)
+            bold = hl.get('bold', False)
+            strikethrough = hl.get('strikethrough', False)
+            underline = hl.get('underline', False)
+            undercurl = hl.get('undercurl', False)
+            blend = hl.get('blend', False)
+            if reverse:
+                foreground, background = background, foreground
+            font = wx.Font(tc.GetFont())
+            # font = wx.Font()#todo
+            if bold: font.MakeBold()
+            if italic: font.MakeItalic()
+            if strikethrough: font.MakeStrikethrough()
+            style = wx.TextAttr(wx.Colour(foreground), wx.Colour(background), font)
+            # style = wx.TextAttr(wx.Colour(background), wx.Colour(foreground), font)
+            if underline:
+                style.SetFontUnderlineType(wx.TEXT_ATTR_UNDERLINE_SOLID, wx.Colour(special))
+            if undercurl:
+                style.SetFontUnderlineType(wx.TEXT_ATTR_UNDERLINE_SPECIAL, wx.Colour(special))
+            # tc = wx.TextCtrl() #todo
+            tc.SetDefaultStyle(style)
         tc.Remove(pos, pos+repeat)
         tc.SetInsertionPoint(pos)
-        tc.SetDefaultStyle(style)
         tc.WriteText(text*repeat)
+        self.lasthl = hl_id
         # tc.Replace(pos, pos+repeat, text*repeat)
         # tc.SetStyle(pos, pos+repeat,
         
