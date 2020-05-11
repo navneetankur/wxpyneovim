@@ -128,6 +128,7 @@ class Events:
     def do_update(self, ui):
         nm = self.nbr.next_message()
         if nm[1] != 'redraw':
+            print(nm)
             raise Exception('new event type. have a look')
         for m in nm[2]:
             func = getattr(self,m[0])

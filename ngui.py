@@ -16,16 +16,27 @@ class Example(wx.Frame):
         super(Example, self).__init__(parent, title=title,
             size=(width, height))
         self.linespace = 0
+        self.resize_timer = wx.Timer(self)
         self.charspace = 0
         self.counter = 0
         self.events = events
         self.pnl = self
-        # self.pnl = wx.Panel(self)
-        # self.pnl.SetFont(wx.Font(wx.FontInfo().FaceName('Source Code Pro')))
         self.pnl.Bind(wx.EVT_PAINT, self.OnPaint)
         self.pnl.Bind(wx.EVT_CHAR, self.OnKey)
-        # self.pnl.Bind(wx.EVT_KEY_DOWN, self.OnKey)
-        # self.pnl.Bind(wx.EVT_KEY_UP, self.OnKey)
+        self.pnl.Bind(wx.EVT_SIZE, self.OnResize)
+        self.pnl.Bind(wx.EVT_TIMER, self.resize_timer_expired)
+    def resize_timer_expired(self,e):
+        dc = wx.ClientDC(self)
+        dc.SetFont(self.GetFont())
+        text_size = dc.GetTextExtent('_')
+        size = self.GetClientSize()
+        grid_width = size.GetWidth()/text_size.GetWidth()
+        grid_height = size.GetHeight()/text_size.GetHeight()
+        self.events.nbr.request('nvim_ui_try_resize_grid',1,int(grid_width),int(grid_height),async_=True)
+        
+
+    def OnResize(self,e):
+        self.resize_timer.StartOnce(200)
     def OnKey(self,e):
         unicodekey = e.GetUnicodeKey()
         keycode = e.GetKeyCode()
@@ -40,7 +51,6 @@ class Example(wx.Frame):
     def draw(self,dc,redraw=False):
         dc.SetBackgroundMode(wx.SOLID)
         font = self.pnl.GetFont()
-        # font = wx.Font()#todo
         font_style = font.GetStyle()
         dc.SetFont(font)
         text_size = dc.GetTextExtent('_')
@@ -62,14 +72,12 @@ class Example(wx.Frame):
                     bold = hl['bold'] if 'bold' in hl else False
                     reverse = hl['reverse'] if 'reverse' in hl else False
                     blend = hl['blend'] if 'blend' in hl else False
-                    #todo I dont know what blend meand. make underline same as undercurl for now.
+                    #I dont know what blend means. make underline same as undercurl for now.
                     #also need to draw the underline manually to make it of different color
                     if reverse:
                         fg,bg = bg,fg
                     dc.SetTextForeground(wx.Colour(fg))
                     dc.SetTextBackground(wx.Colour(bg))
-                    if underline or undercurl:
-                        font.MakeUnderlined()
                     if italic:
                         font.MakeItalic()
                     if strikethrough:
@@ -77,7 +85,17 @@ class Example(wx.Frame):
                     if bold:
                         font.MakeBold()
                     dc.DrawText(col[0], j*text_size.GetWidth(), i*text_size.GetHeight())
+                    if underline or undercurl:
+                        if underline:
+                            dc.SetPen(wx.Pen(wx.Colour(sc),1,wx.PENSTYLE_SOLID))
+                        else:
+                            dc.SetPen(wx.Pen(wx.Colour(sc),1,wx.PENSTYLE_DOT))
+                        x1 = j*text_size.GetWidth() - 1
+                        y1 = (i+1)*text_size.GetHeight() - 2
+                        x2 = x1 + text_size.GetWidth() + 0
+                        dc.DrawLine(x1,y1,x2,y1)
                     col[2] = False #grid dirty bit unset
+        #start drawing cursor
         cursor_position = self.events.grid.cursor_position
         mode_idx = self.events.mode_idx
         mode_info = self.events.mode_infos[mode_idx]
@@ -89,10 +107,14 @@ class Example(wx.Frame):
         bg = hl['background'] if 'background' in hl else def_bg
         if attr_id == 0: fg,bg = bg,fg
         if cursor_position[0] >= self.events.grid.status_line_no:
-            """I hate this, lets ignore for now, cmd line will be without cursor"""
-        elif cursor_shape == 'block':
+            #cursor in cmd_line hopefully
+            text = self.events.grid.cmd_line[cursor_position[1]][0]
+            self.events.grid.cmd_line[cursor_position[1]][2] = True #set dirty bit at cursor position
+        else:
+            #cursor in grid
             text = self.events.grid.content[cursor_position[0]][cursor_position[1]][0]
             self.events.grid.content[cursor_position[0]][cursor_position[1]][2] = True #set dirty bit at cursor position
+        if cursor_shape == 'block':
             dc.SetTextForeground(wx.Colour(fg))
             dc.SetTextBackground(wx.Colour(bg))
             dc.DrawText(text, cursor_position[1]*text_size.GetWidth(), cursor_position[0]*text_size.GetHeight())
@@ -100,29 +122,4 @@ class Example(wx.Frame):
             dc.SetBrush(wx.Brush(wx.Colour(bg)))
             dc.SetPen(wx.Pen(None,1,style=wx.TRANSPARENT))
             dc.DrawRectangle(cursor_position[1]*text_size.GetWidth(), cursor_position[0]*text_size.GetHeight(),text_size.GetWidth()*cell_percentage,text_size.GetHeight())
-            self.events.grid.content[cursor_position[0]][cursor_position[1]][2] = True #set dirty bit at cursor position
-
-
-
         font.SetStyle(font_style)# is this needed?
-        # dc.SetPen(wx.Pen('RED'))
-        # dc.DrawText('hello{}'.format(self.counter) , 5,5)
-        # self.counter += 1
-        # dc.DrawLine(50, 60, 190, 60)
-    def temp(self):
-        dc = wx.ClientDC(self)
-        # dc.SetPen(wx.Pen('RED'))
-        dc.DrawLine(50, 60, 190, 60)
-        # dc.DrawText('hello world', 50,50)
-        # dc.DrawCircle(50,50,200)
-
-
-def main():
-    app = wx.App()
-    ex = Example(None,'Sizing',None)
-    ex.Show()
-    # threading.Thread(target=app.MainLoop).start()
-    app.MainLoop()
-
-if __name__ == '__main__':
-    main()

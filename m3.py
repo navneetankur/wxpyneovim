@@ -15,7 +15,7 @@ nvim.vars['global_var'] = [1, 2, 3]
 gv = nvim.eval('g:global_var')
 nbr.ui_attach(400,200,True,ext_linegrid=True)
 events = redrawevent.Events(nbr)
-ui = ngui.NGUI(nbr, events, 'Title',800,500)
+ui = ngui.NGUI(nbr, events, 'WxPyNeovim',800,500)
 # threading.Thread(target=events.update_loop,args=(self,)).start()
 # print(nm)
 
