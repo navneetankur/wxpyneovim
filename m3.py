@@ -10,19 +10,17 @@ nbr = nbridge.NBridge(nvim)
 # Now do some work. 
 buffer = nvim.current.buffer # Get the current buffer
 buffer[0] = 'replace first line'
-buffer[:] = ['replace whole buffer']
 nbr.input('inew line')
 nvim.vars['global_var'] = [1, 2, 3]
 gv = nvim.eval('g:global_var')
 nbr.ui_attach(400,200,True,ext_linegrid=True)
 events = redrawevent.Events(nbr)
 ui = ngui.NGUI(nbr, events, 'Title',800,500)
+# threading.Thread(target=events.update_loop,args=(self,)).start()
 # print(nm)
 
 ui.app.MainLoop()
-print(ui.events.option)
 
-print(gv)
 nbr.ui_detach()
 nbr.close()
 print('done')

@@ -1,22 +1,29 @@
-import ngui
 import wx
-from wx.richtext import RichTextRange as rtr
 import copy
 from collections import deque
+from config import Config
 class Grid:
     def __init__(self):
         self.width = 400
         self.height = 200
         self.content = deque([[[]]])
+        self.status_line = [[]]
+        self.cmd_line = [[]]
+        self.status_line_no = 0
+        self.cmd_line_no = 0
+        self.cursor_position = [0,0]
 
 class Events:
     def __init__(self, nbr, title='Title', width=350, height=250):
         self.nbr = nbr
         self.option = {}
-        self.default_colors = {}
+        self.default_colors = {'foreground':0,'background':16777215,'special':0}
         self.hl_attr = {}
         self.hl_group = {}
         self.grid = Grid()
+        self.config = Config()
+        self.mode_infos = []
+        self.mode_idx = 0
         
     def option_set(self,ui,options):
         for opt in options:
@@ -58,10 +65,14 @@ class Events:
     def grid_resize(self,ui,e):
         col = self.grid.width = e[0][1]
         row = self.grid.height = e[0][2]
-        c = [' ',1]
+        c = [' ',1,True]
         d = [copy.deepcopy(c) for i in range(col)]
-        e = deque(copy.deepcopy(d) for i in range(row))
+        e = deque(copy.deepcopy(d) for i in range(row-2)) #because last two rows are statuslines
         self.grid.content = e
+        self.grid.status_line_no = row-2
+        self.grid.cmd_line_no = row-1
+        self.grid.status_line = copy.deepcopy(d)
+        self.grid.cmd_line = copy.deepcopy(d)
         wx.CallAfter(self.resize_ui,ui,col,row)
 
     def clear_grid(self,ui,g):
@@ -80,6 +91,7 @@ class Events:
             cells = line[3]
             i = 0
             hl_id = 1
+            container = None
             for cell in cells:
                 repeat = 1
                 try:
@@ -87,14 +99,19 @@ class Events:
                     hl_id = cell[1]
                     repeat = cell[2]
                 except IndexError:
-                    continue
-                finally:
+                    pass
                     # wx.CallAfter(ui.textCtrl.AppendText,text)
-                    # tc = wx.richtext.RichTextCtrl()#todo
-                    for r in range(repeat):
-                        self.grid.content[row][col_start+i+r][0] = text
-                        self.grid.content[row][col_start+i+r][1] = hl_id
-                    i += repeat
+                if row == self.grid.status_line_no:
+                    container = self.grid.status_line
+                elif row == self.grid.cmd_line_no:
+                    container = self.grid.cmd_line
+                else:
+                    container = self.grid.content[row]
+                for r in range(repeat):
+                    container[col_start+i+r][0] = text
+                    container[col_start+i+r][1] = hl_id
+                    container[col_start+i+r][2] = True
+                i += repeat
 
     def do_gui_update(self,tc, row,col, text, repeat=1):
         pos = tc.XYToPosition(col, row)
@@ -110,34 +127,49 @@ class Events:
 
     def do_update(self, ui):
         nm = self.nbr.next_message()
+        if nm[1] != 'redraw':
+            raise Exception('new event type. have a look')
         for m in nm[2]:
             func = getattr(self,m[0])
             func(ui,m[1:])
 
-    def update_gui(self,ui):
-        ui.frame.pnl.Refresh()
+    def update_gui(self,ui,redraw):
+        wx.CallAfter(ui.frame.draw,wx.ClientDC(ui.pnl),redraw)
 
     def grid_cursor_goto(self,ui,position):
-        pass
+        self.grid.cursor_position = position[0][1:]
 
     def grid_destroy(self,ui,e):
         pass
+    def do_rotate(self,scroll):
+        self.grid.content.rotate(scroll)
     def grid_scroll(self,ui,e):
         scroll = e[0][5]
         # wx.CallAfter(self.grid.content.rotate,-scroll)
         #doen't work because this causes status bar to scroll as well
 
         # self.grid.content.rotate(scroll)
+        # wx.CallAfter(self.do_rotate,-scroll)
+        self.do_rotate(-scroll)
+        self.update_gui(ui,True)
 
-        pass
     def mode_info_set(self,ui,e):
-        pass
+        self.mode_infos = (e[0][1])
     def mode_change(self,ui,e):
+        self.mode_idx = (e[0][1])
         pass
     def flush(self,ui,e):
-        self.update_gui(ui)
+        self.update_gui(ui,False)
     def busy_start(self,ui,e):
         pass
+    def busy_stop(self,ui,e):
+        pass
+    def mouse_on(self,ui,e):
+        pass
+    def mouse_off(self,ui,e):
+        pass
+    def test(self, *args):
+        print(args)
 
 
 
